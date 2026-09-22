@@ -252,7 +252,10 @@ class App {
       return;
     }
 
+    // 一次分析的所有日志共享同一上下文编号，重新分析时编号与计时器重新开始
+    Logger.startContext('音频分析');
     logger.info('开始分析音频', { startMs, endMs });
+    logger.timeStart('音频分析');
 
     try {
       this.uiController.showLoading('正在分析音频...');
@@ -278,7 +281,7 @@ class App {
       this.currentAnalysisResult = analysisResult;
 
       // 更新图表
-      this.chartManager.updateAllCharts(analysisResult, selectedData, this.audioBuffer.sampleRate);
+      await this.chartManager.updateAllCharts(analysisResult, selectedData, this.audioBuffer.sampleRate);
 
       // 更新基频信息
       this.updateFundamentalInfo(analysisResult);
@@ -297,6 +300,8 @@ class App {
       alert('音频分析失败: ' + error.message);
     } finally {
       this.uiController.hideLoading();
+      logger.timeEnd('音频分析');
+      Logger.endContext();
     }
   }
 

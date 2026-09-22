@@ -24,13 +24,15 @@ export class ChartManager {
   /**
    * 更新所有图表
    */
-  updateAllCharts(analysisResult, audioData, sampleRate) {
+  async updateAllCharts(analysisResult, audioData, sampleRate) {
     logger.info('更新所有图表');
-    
-    this.updateWaveformChart(audioData, sampleRate);
-    this.updateSpectrumChart(analysisResult);
-    this.updateHeatmapChart(analysisResult.heatmapData);
-    this.updateFrequencyBandCharts(analysisResult);
+
+    await logger.measure('所有图表更新', async () => {
+      this.updateWaveformChart(audioData, sampleRate);
+      this.updateSpectrumChart(analysisResult);
+      this.updateHeatmapChart(analysisResult.heatmapData);
+      this.updateFrequencyBandCharts(analysisResult);
+    });
   }
 
   /**

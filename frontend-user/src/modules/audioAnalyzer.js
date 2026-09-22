@@ -21,8 +21,10 @@ export class AudioAnalyzer {
     logger.info('开始频谱分析', { dataLength: audioData.length, sampleRate, fftSize });
 
     // 执行 FFT 分析
-    const frequencyData = this.performFFT(audioData, fftSize);
-    
+    const frequencyData = await logger.measure('频谱分析', () =>
+      this.performFFT(audioData, fftSize)
+    );
+
     // 计算频率分辨率
     const frequencyResolution = sampleRate / fftSize;
     
@@ -40,19 +42,23 @@ export class AudioAnalyzer {
     }
 
     // 检测基频
-    const fundamentalFreq = this.detectFundamentalFrequency(audioData, sampleRate, frequencies, magnitudes);
-    
+    const fundamentalFreq = await logger.measure('基频检测', () =>
+      this.detectFundamentalFrequency(audioData, sampleRate, frequencies, magnitudes)
+    );
+
     // 计算倍频 (最大13倍)
     const harmonics = this.calculateHarmonics(fundamentalFreq, 13);
-    
+
     // 过滤只保留基频和倍频附近的数据
     const filteredData = this.filterHarmonics(frequencies, magnitudes, fundamentalFreq, harmonics);
-    
+
     // 计算频率区域数据
     const frequencyBands = this.calculateFrequencyBands(fundamentalFreq, harmonics, filteredData);
-    
+
     // 计算声强随时间变化的热力图数据
-    const heatmapData = this.calculateHeatmapData(audioData, sampleRate, fftSize, fundamentalFreq, harmonics);
+    const heatmapData = await logger.measure('热力图计算', () =>
+      this.calculateHeatmapData(audioData, sampleRate, fftSize, fundamentalFreq, harmonics)
+    );
 
     // 找出频率范围
     const minFreq = fundamentalFreq * 0.8;
