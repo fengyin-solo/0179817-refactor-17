@@ -1,6 +1,6 @@
-import { Logger } from '../utils/logger.js';
+import { createLogger } from '../utils/logger.js';
 
-const logger = new Logger('AudioAnalyzer');
+const logger = createLogger('AudioAnalyzer');
 
 /**
  * 音频分析器 - 负责音频的频谱分析、基频检测和倍频计算
@@ -17,20 +17,22 @@ export class AudioAnalyzer {
    * @param {number} fftSize - FFT 大小
    * @returns {Object} 分析结果
    */
-  async analyze(audioData, sampleRate, fftSize = 8192) {
-    logger.info('开始频谱分析', { dataLength: audioData.length, sampleRate, fftSize });
+  async analyze(audioData, sampleRate, fftSize = 8192, context = null) {
+    logger.info('开始频谱分析', { dataLength: audioData.length, sampleRate, fftSize }, context);
 
     // 执行 FFT 分析
+    logger.timeStart('FFT变换', context);
     const frequencyData = this.performFFT(audioData, fftSize);
-    
+    logger.timeEnd('FFT变换', context, 'DEBUG');
+
     // 计算频率分辨率
     const frequencyResolution = sampleRate / fftSize;
-    
+
     // 生成频率数组
     const frequencies = [];
     const magnitudes = [];
     const binCount = fftSize / 2;
-    
+
     for (let i = 0; i < binCount; i++) {
       const freq = i * frequencyResolution;
       if (freq > 20 && freq < 20000) { // 人耳可听范围
@@ -40,19 +42,21 @@ export class AudioAnalyzer {
     }
 
     // 检测基频
-    const fundamentalFreq = this.detectFundamentalFrequency(audioData, sampleRate, frequencies, magnitudes);
-    
+    const fundamentalFreq = this.detectFundamentalFrequency(audioData, sampleRate, frequencies, magnitudes, context);
+
     // 计算倍频 (最大13倍)
     const harmonics = this.calculateHarmonics(fundamentalFreq, 13);
-    
+
     // 过滤只保留基频和倍频附近的数据
     const filteredData = this.filterHarmonics(frequencies, magnitudes, fundamentalFreq, harmonics);
-    
+
     // 计算频率区域数据
     const frequencyBands = this.calculateFrequencyBands(fundamentalFreq, harmonics, filteredData);
-    
+
     // 计算声强随时间变化的热力图数据
+    logger.timeStart('热力图计算', context);
     const heatmapData = this.calculateHeatmapData(audioData, sampleRate, fftSize, fundamentalFreq, harmonics);
+    logger.timeEnd('热力图计算', context, 'DEBUG');
 
     // 找出频率范围
     const minFreq = fundamentalFreq * 0.8;
@@ -151,26 +155,30 @@ export class AudioAnalyzer {
   /**
    * 检测基频 - 使用自相关法和峰值检测
    */
-  detectFundamentalFrequency(audioData, sampleRate, frequencies, magnitudes) {
+  detectFundamentalFrequency(audioData, sampleRate, frequencies, magnitudes, context = null) {
+    logger.timeStart('基频检测', context);
+
     // 方法1: 自相关法
     const autocorrFreq = this.autocorrelation(audioData, sampleRate);
-    
+
     // 方法2: 峰值检测法
     const peakFreq = this.findDominantPeak(frequencies, magnitudes);
-    
+
     // 综合判断 - 优先使用自相关法的结果，因为它对古琴这类乐器更准确
     let fundamentalFreq = autocorrFreq;
-    
+
     // 如果自相关法结果不合理，使用峰值检测
     if (fundamentalFreq < 50 || fundamentalFreq > 2000) {
       fundamentalFreq = peakFreq;
     }
-    
+
     // 验证：检查是否可能是倍频被误检为基频
     const possibleFundamental = this.verifyFundamental(fundamentalFreq, frequencies, magnitudes);
-    
-    logger.info('基频检测结果', { autocorrFreq, peakFreq, final: possibleFundamental });
-    
+
+    logger.info('基频检测结果', { autocorrFreq, peakFreq, final: possibleFundamental }, context);
+
+    logger.timeEnd('基频检测', context, 'DEBUG');
+
     return possibleFundamental;
   }
 

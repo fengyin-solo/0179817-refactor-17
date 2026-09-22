@@ -1,10 +1,10 @@
 import Chart from 'chart.js/auto';
 import annotationPlugin from 'chartjs-plugin-annotation';
-import { Logger } from '../utils/logger.js';
+import { createLogger } from '../utils/logger.js';
 
 Chart.register(annotationPlugin);
 
-const logger = new Logger('ChartManager');
+const logger = createLogger('ChartManager');
 
 /**
  * 图表管理器 - 负责所有图表的创建和更新
@@ -24,13 +24,24 @@ export class ChartManager {
   /**
    * 更新所有图表
    */
-  updateAllCharts(analysisResult, audioData, sampleRate) {
-    logger.info('更新所有图表');
-    
+  updateAllCharts(analysisResult, audioData, sampleRate, context = null) {
+    logger.info('更新所有图表', null, context);
+
+    logger.timeStart('波形图更新', context);
     this.updateWaveformChart(audioData, sampleRate);
+    logger.timeEnd('波形图更新', context, 'DEBUG');
+
+    logger.timeStart('频谱图更新', context);
     this.updateSpectrumChart(analysisResult);
+    logger.timeEnd('频谱图更新', context, 'DEBUG');
+
+    logger.timeStart('热力图更新', context);
     this.updateHeatmapChart(analysisResult.heatmapData);
+    logger.timeEnd('热力图更新', context, 'DEBUG');
+
+    logger.timeStart('频段图更新', context);
     this.updateFrequencyBandCharts(analysisResult);
+    logger.timeEnd('频段图更新', context, 'DEBUG');
   }
 
   /**

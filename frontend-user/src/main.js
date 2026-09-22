@@ -2,10 +2,10 @@ import { AudioAnalyzer } from './modules/audioAnalyzer.js';
 import { ChartManager } from './modules/chartManager.js';
 import { UIController } from './modules/uiController.js';
 import { RecordManager } from './modules/recordManager.js';
-import { Logger } from './utils/logger.js';
+import { createLogger, createContext } from './utils/logger.js';
 
 // 初始化日志
-const logger = new Logger('Main');
+const logger = createLogger('Main');
 
 // 应用初始化
 class App {
@@ -252,10 +252,13 @@ class App {
       return;
     }
 
-    logger.info('开始分析音频', { startMs, endMs });
+    // 每次分析创建独立上下文，重新进入时生成新的上下文与计时器，互不干扰
+    const context = createContext('分析');
+    logger.timeStart('音频分析', context);
+    logger.info('开始分析音频', { startMs, endMs }, context);
 
     try {
-      this.uiController.showLoading('正在分析音频...');
+      this.uiController.showLoading('正在分析音频...', context);
 
       // 获取 FFT 大小
       const fftSize = parseInt(document.getElementById('fftSize').value);
@@ -267,18 +270,18 @@ class App {
       const selectedData = channelData.slice(startSample, endSample);
 
       // 分析音频
-      const analysisResult = await this.audioAnalyzer.analyze(selectedData, this.audioBuffer.sampleRate, fftSize);
+      const analysisResult = await this.audioAnalyzer.analyze(selectedData, this.audioBuffer.sampleRate, fftSize, context);
 
-      logger.info('音频分析完成', { 
+      logger.info('音频分析完成', {
         fundamentalFreq: analysisResult.fundamentalFreq,
-        harmonicsCount: analysisResult.harmonics.length 
-      });
+        harmonicsCount: analysisResult.harmonics.length
+      }, context);
 
       // 保存当前分析结果
       this.currentAnalysisResult = analysisResult;
 
       // 更新图表
-      this.chartManager.updateAllCharts(analysisResult, selectedData, this.audioBuffer.sampleRate);
+      this.chartManager.updateAllCharts(analysisResult, selectedData, this.audioBuffer.sampleRate, context);
 
       // 更新基频信息
       this.updateFundamentalInfo(analysisResult);
@@ -293,10 +296,11 @@ class App {
       document.getElementById('recordNote').value = '';
 
     } catch (error) {
-      logger.error('音频分析失败', error);
+      logger.error('音频分析失败', error, context);
       alert('音频分析失败: ' + error.message);
     } finally {
-      this.uiController.hideLoading();
+      logger.timeEnd('音频分析', context);
+      this.uiController.hideLoading(context);
     }
   }
 

@@ -1,6 +1,6 @@
-import { Logger } from '../utils/logger.js';
+import { createLogger } from '../utils/logger.js';
 
-const logger = new Logger('RecordManager');
+const logger = createLogger('RecordManager');
 
 /**
  * 记录管理器 - 负责保存、加载、删除音频分析记录

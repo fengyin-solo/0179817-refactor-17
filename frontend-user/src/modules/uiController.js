@@ -1,6 +1,6 @@
-import { Logger } from '../utils/logger.js';
+import { createLogger } from '../utils/logger.js';
 
-const logger = new Logger('UIController');
+const logger = createLogger('UIController');
 
 /**
  * UI 控制器 - 负责界面状态管理和交互
@@ -14,7 +14,7 @@ export class UIController {
    * 显示加载状态
    * @param {string} message - 加载提示信息
    */
-  showLoading(message = '加载中...') {
+  showLoading(message = '加载中...', context = null) {
     if (this.loadingOverlay) {
       const textElement = this.loadingOverlay.querySelector('p');
       if (textElement) {
@@ -22,17 +22,17 @@ export class UIController {
       }
       this.loadingOverlay.style.display = 'flex';
     }
-    logger.info('显示加载状态', { message });
+    logger.info('显示加载状态', { message }, context);
   }
 
   /**
    * 隐藏加载状态
    */
-  hideLoading() {
+  hideLoading(context = null) {
     if (this.loadingOverlay) {
       this.loadingOverlay.style.display = 'none';
     }
-    logger.info('隐藏加载状态');
+    logger.info('隐藏加载状态', null, context);
   }
 
   /**
